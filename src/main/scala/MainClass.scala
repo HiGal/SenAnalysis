@@ -4,7 +4,7 @@ import org.apache.spark.streaming._
 import org.apache.spark.streaming.twitter._
 import org.apache.spark.streaming.StreamingContext._
 import org.apache.log4j.Level
-import Utilities._
+import com.nus.sparkstreaming.Utilities._
 
 
 object MainClass{
