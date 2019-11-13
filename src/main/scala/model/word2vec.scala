@@ -7,8 +7,6 @@ class word2vec {
   var trained_model: Word2VecModel = _
 
   def train(dataset: DataFrame, maxIter: Int): Word2VecModel = {
-
-
     val model = new Word2Vec()
       .setMaxIter(maxIter)
       .setVectorSize(128)
