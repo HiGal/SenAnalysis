@@ -1,35 +1,38 @@
+import model.word2vec
 import org.apache.spark._
 import org.apache.spark.SparkContext._
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.StreamingContext._
 import org.apache.log4j.Level
-import model.word2vec
-import org.apache.spark.ml.feature.RegexTokenizer
 import org.apache.spark.sql.SparkSession
-
 
 object MainClass{
   def main(args: Array[String]){
-
     val spark = SparkSession.builder
-      .master("local")
-      .appName("Spark CSV Reader")
+      .master("local[4]")
+      .appName("Main")
       .getOrCreate
-
     val df = spark.read
       .format("csv")
-      .option("header", "true")
+      .option("header", "true") //first line in file has headers
       .load("dataset/train.csv")
+    val model = new word2vec()
+    model.train(df)
+    // Configure Twitter credentials using twitter.txt
+//    setupTwitter()
+//    val ssc = new StreamingContext("local[*]", "PrintTweets", Seconds(1))
+//    setupLogging()
+//
+//    // Create a DStream from Twitter using our streaming context
+//    val tweets = TwitterUtils.createStream(ssc, None)
+//
+//    // Now extract the text of each status update into RDD's using map()
+//    val statuses = tweets.map(status => status.getText())
+//    statuses.print()
+//
+//    ssc.start()
+//    ssc.awaitTermination()
 
-    val tokenizer = new RegexTokenizer()
-      .setInputCol("SentimentText")
-      .setOutputCol("Tokens")
-      .setPattern("\\W+")
-      .setGaps(true)
-
-    val tmp = tokenizer.transform(df)
-
-    val model = new word2vec().train(tmp,1)
-    val result = model.transform(tmp)
   }
+
 }
