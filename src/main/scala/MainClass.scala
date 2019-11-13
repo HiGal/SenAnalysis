@@ -4,11 +4,23 @@ import org.apache.log4j.Logger
 import org.apache.log4j.Level
 import org.apache.spark
 import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.sql.SparkSession
 
-object MainClass{
-  def main(args: Array[String]){
+object MainClass {
+  def main(args: Array[String]) {
     Logger.getLogger("org").setLevel(Level.OFF)
     Logger.getLogger("akka").setLevel(Level.OFF)
+
+    // ML
+    val spark = SparkSession.builder
+      .master("local")
+      .appName("PISKA")
+      .getOrCreate()
+    val training = spark.read.format("libsvm").load("data/mllib/sample_libsvm_data.txt")
+    val lr = new LogisticRegression()
+      .setMaxIter(10)
+      .setRegParam(0.3)
+      .setElasticNetParam(0.8)
 
     val conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount")
     val ssc = new StreamingContext(conf, Seconds(1))
