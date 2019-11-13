@@ -12,6 +12,5 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-streaming" % sparkVersion,
   "org.apache.spark" %% "spark-streaming-twitter" % sparkVersion,
   "org.deeplearning4j" % "scalnet_2.11" % "0.9.2-SNAPSHOT",
-  "org.apache.spark" %% "spark-sql",
-  "org.apache.spark" %% "spark-mllib"
+  "org.apache.spark" %% "spark-mllib"%"2.4.0"
 )
