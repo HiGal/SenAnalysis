@@ -1,10 +1,10 @@
 package model
 
-import org.apache.spark.ml.feature.{RegexTokenizer, Tokenizer, Word2Vec}
+import org.apache.spark.ml.feature.{RegexTokenizer, Tokenizer, Word2Vec, Word2VecModel}
 import org.apache.spark.sql.{SQLContext, SparkSession}
 
-object word2vec {
-  def main(args: Array[String]): Unit = {
+class word2vec {
+  def train(args: Array[String]): Word2VecModel = {
     //    val conf = new SparkConf().setAppName("Word2vec")
     //    val sc = new SparkContext(conf)
     val spark = SparkSession.builder
@@ -16,7 +16,6 @@ object word2vec {
       .format("csv")
       .option("header", "true") //first line in file has headers
       .load("dataset/train.csv")
-    import spark.implicits._
     val model = new Word2Vec()
     model.setMaxIter(5)
     model.setVectorSize(128)
@@ -36,7 +35,8 @@ object word2vec {
     val result = w2vmodel.transform(tmp)
     result.select("result").take(3).foreach(println)
     val ds = w2vmodel.findSynonyms("apple", 5).select("word")
-    ds.show(5)
+
+    w2vmodel
   }
 
 }
