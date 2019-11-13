@@ -1,39 +1,35 @@
 import org.apache.spark._
+import org.apache.spark.SparkContext._
 import org.apache.spark.streaming._
-import org.apache.log4j.Logger
+import org.apache.spark.streaming.StreamingContext._
 import org.apache.log4j.Level
-import org.apache.spark
-import org.apache.spark.ml.classification.LogisticRegression
+import model.word2vec
+import org.apache.spark.ml.feature.RegexTokenizer
 import org.apache.spark.sql.SparkSession
 
-object MainClass {
-  def main(args: Array[String]) {
-    Logger.getLogger("org").setLevel(Level.OFF)
-    Logger.getLogger("akka").setLevel(Level.OFF)
 
-    // ML
+object MainClass{
+  def main(args: Array[String]){
+
     val spark = SparkSession.builder
       .master("local")
-      .appName("PISKA")
-      .getOrCreate()
-    val training = spark.read.format("libsvm").load("data/mllib/sample_libsvm_data.txt")
-    val lr = new LogisticRegression()
-      .setMaxIter(10)
-      .setRegParam(0.3)
-      .setElasticNetParam(0.8)
+      .appName("Spark CSV Reader")
+      .getOrCreate
 
-    val conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount")
-    val ssc = new StreamingContext(conf, Seconds(1))
+    val df = spark.read
+      .format("csv")
+      .option("header", "true")
+      .load("dataset/train.csv")
 
-    // Words  reading
-    val lines = ssc.socketTextStream("10.91.66.168", 8989)
-    val words = lines.flatMap(_.split(" "))
-    val pairs = words.map(word => (word, 1))
-    val wordCounts = pairs.reduceByKey(_ + _)
+    val tokenizer = new RegexTokenizer()
+      .setInputCol("SentimentText")
+      .setOutputCol("Tokens")
+      .setPattern("\\W+")
+      .setGaps(true)
 
-    wordCounts.print()
+    val tmp = tokenizer.transform(df)
 
-    ssc.start()
-    ssc.awaitTermination()
+    val model = new word2vec().train(tmp,1)
+    val result = model.transform(tmp)
   }
 }
