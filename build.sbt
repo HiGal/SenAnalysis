@@ -11,5 +11,6 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-streaming" % sparkVersion,
   "org.deeplearning4j" % "scalnet_2.11" % "0.9.2-SNAPSHOT",
-  "org.apache.spark" %% "spark-mllib"%"2.4.0"
+  "org.apache.spark" %% "spark-mllib"% sparkVersion
 )
+dependencyOverrides += "com.google.guava" % "guava" % "15.0"

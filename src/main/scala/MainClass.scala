@@ -23,7 +23,6 @@ object MainClass {
       .master("local")
       .appName("Spark CSV Reader")
       .getOrCreate
-
     var df = spark.read
       .format("csv")
       .option("header", "true")
@@ -39,6 +38,9 @@ object MainClass {
     val tmp = tokenizer.transform(df)
 
     val model = new word2vec().train(tmp, 1)
+    model.save("./word2vec.model")
+
+//    val model = new word2vec().load_model("./word2vec.model")
     val result = model.transform(tmp)
     val Array(trainingData, testData) = result.randomSplit(Array(0.8, 0.2), seed = 1234L)
     val logistic = new LogisticRegression()
