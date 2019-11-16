@@ -41,18 +41,16 @@ object MainClass{
 //    val model = new word2vec().train(tmp, 50)
 //    model.save("./word2vec.model")
     val tmp = tokenizer.transform(train_df)
-    val model = new word2vec().load_model("./word2vec.model")
-    val result = model.transform(tmp)
+    val w2v = new word2vec().load_model("./word2vec.model")
+    val result = w2v.transform(tmp)
     val Array(trainingData, testData) = result.randomSplit(Array(0.8, 0.2), seed = 1234L)
     val logistic =  new LogisticRegression()
       .setMaxIter(100)
-      .setRegParam(0.3)
-      .setElasticNetParam(0.8)
       .setFeaturesCol("result")
       .setLabelCol("Sentiment")
       .fit(trainingData)
 
-    val test_features = model.transform(tokenizer.transform(test_df))
+    val test_features = w2v.transform(tokenizer.transform(test_df))
     var predictions = logistic.transform(test_features)
     println("Predictions on test data")
     predictions.show()
@@ -68,5 +66,6 @@ object MainClass{
       .setMetricName("accuracy")
     val accuracy = evaluator.evaluate(predictions)
     println(s"Validation set accuracy = $accuracy")
+//    println(s"Count 1 =$ \nCount 2 =$")
   }
 }
