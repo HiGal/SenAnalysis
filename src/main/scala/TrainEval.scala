@@ -1,7 +1,7 @@
 import model.word2vec
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.feature.RegexTokenizer
+import org.apache.spark.ml.feature.{RegexTokenizer, StopWordsRemover}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.regexp_replace
 import org.apache.spark.sql.types.IntegerType
@@ -27,24 +27,31 @@ object TrainEval {
 
     val tokenizer = new RegexTokenizer()
       .setInputCol("SentimentText")
-      .setOutputCol("Tokens")
+      .setOutputCol("result")
       .setPattern("\\W+")
       .setGaps(true)
 
+    val remover = new StopWordsRemover()
+      .setInputCol("result")
+      .setOutputCol("filteredPhrases")
     //    val tmp = tokenizer.transform(train_df).select("Tokens").union(tokenizer.transform(test_df).select("Tokens"))
     //    val model = new word2vec().train(tmp, 50)
     //    model.save("./word2vec.model")
     val tmp = tokenizer.transform(train_df)
-    val w2v = new word2vec().load_model("./word2vec.model")
-    val result = w2v.transform(tmp)
+    val tmp1 = remover.transform(tmp)
+    val w2v = new word2vec().load_model("./w2v_big")
+    val result = w2v.transform(tmp1)
+    result.printSchema()
     val Array(trainingData, testData) = result.randomSplit(Array(0.8, 0.2), seed = 1234L)
     val logistic =  new LogisticRegression()
       .setMaxIter(100)
-      .setFeaturesCol("result")
+      .setFeaturesCol("word2vec")
       .setLabelCol("Sentiment")
       .fit(trainingData)
 
-    val test_features = w2v.transform(tokenizer.transform(test_df))
+
+
+    val test_features = w2v.transform(remover.transform(tokenizer.transform(test_df)))
     var predictions = logistic.transform(test_features)
     println("Predictions on test data")
     predictions.show()
