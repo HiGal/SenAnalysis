@@ -50,14 +50,14 @@ object MainClass {
       .fit(trainingData)
 
 
-    //    val wordSchema = new StructType().add("SentimentText", "string")
-    //    val socketDF = spark.readStream
-    //      .format("socket")
-    //      .option("host", "10.90.138.32")
-    //      .option("port", 8989)
-    //      .load()
-    //      .withColumnRenamed("value", "SentimentText")
-    //    //      .withColumn("SentimentText", regexp_replace(df("SentimentText"), "@[a-zA-Z0-9_]+", ""))
+//    val wordSchema = new StructType().add("SentimentText", "string")
+//    val socketDF = spark.readStream
+//      .format("socket")
+//      .option("host", "10.90.138.32")
+//      .option("port", 8989)
+//      .load()
+//      .withColumnRenamed("value", "SentimentText")
+//    //      .withColumn("SentimentText", regexp_replace(df("SentimentText"), "@[a-zA-Z0-9_]+", ""))
 
 
     val ssc = new StreamingContext(spark.sparkContext, Seconds(1))
@@ -74,14 +74,14 @@ object MainClass {
       predictions.write.mode(SaveMode.Append).csv("./piska_pirata")
     })
 
-    //    val query = predictions.writeStream
-    //      .format("csv")
-    //      .option("path", "./data/tweets")
-    //      .option("checkpointLocation", "./checkpoint_path")
-    //      .start()
+//    val query = predictions.writeStream
+//      .format("csv")
+//      .option("path", "./data/tweets")
+//      .option("checkpointLocation", "./checkpoint_path")
+//      .start()
 
-    //    val allfiles =  spark.read.option("header","false").csv("./data/tweets/part-*.csv")
-    //    allfiles.coalesce(1).write.format("csv").option("header", "false").save("/data/single_csv.csv/")
+//    val allfiles =  spark.read.option("header","false").csv("./data/tweets/part-*.csv")
+//    allfiles.coalesce(1).write.format("csv").option("header", "false").save("/data/single_csv.csv/")
 
 
     ssc.start()
