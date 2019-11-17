@@ -28,11 +28,7 @@ object TrainModels {
       .format("csv")
       .option("header", "true")
       .load("dataset/test.csv")
-    val dT = Calendar.getInstance()
-    val currentMinute = dT.get(Calendar.MINUTE)
-    val currentHour = dT.get(Calendar.HOUR_OF_DAY)
-    val currentDate = dT.get(Calendar.DATE)
-    println(s"$currentDate $currentHour:$currentMinute")
+
     val tokenizer = new RegexTokenizer()
       .setInputCol("SentimentText")
       .setOutputCol("Tokens")
@@ -65,13 +61,8 @@ object TrainModels {
       .fit(trainingData)
     logistic.save("logistic.model")
 
-    val test_features = pipeline.transform(test_df)
-    var predictions = logistic.transform(test_features)
-    println("Predictions on test data")
-    predictions.show()
-
     println("Predictions on validation set")
-    predictions = logistic.transform(testData)
+    val predictions = logistic.transform(testData)
     predictions.show()
 
     // Select (prediction, true label) and compute test error

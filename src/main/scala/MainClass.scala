@@ -49,7 +49,7 @@ object MainClass {
           .withColumn("Time", lit(s"$currentHour:$currentMinute"))
           .crossJoin(stream)
         predicitions.select("Time", "SentimentText", "prediction")
-          .write.mode(SaveMode.Append).csv("output/"+k+".csv")
+          .coalesce(1).write.mode(SaveMode.Append).csv("output/"+k)
       }
     })
     //TODO: write count words
