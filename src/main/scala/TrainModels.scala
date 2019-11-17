@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.Column
 
 
-object TrainEval {
+object TrainModels {
   def main(args: Array[String]) {
     Logger.getLogger("org").setLevel(Level.OFF)
     Logger.getLogger("akka").setLevel(Level.OFF)
@@ -50,33 +50,22 @@ object TrainEval {
       .setInputCol("word2vec")
       .setOutputCol("normedW2V")
     val streamPipeline = new Pipeline().setStages(Array( cleaner, tokenizer, remover, model, normalizer))
-    test_df.show(50)
     val sentenceDataFrame = spark.createDataFrame(Seq(("Hi I heard about Spark", 1))).toDF("SentimentText", "id")
-    val a = PipelineModel.load("./pipeline")
-    test_df = a.transform(test_df)
-    test_df.show(50)
-    //    val tmp = tokenizer.transform(train_df).select("Tokens").union(tokenizer.transform(test_df).select("Tokens"))
-    //    val model = new word2vec().train(tmp, 50)
-    //    model.save("./word2vec.model")
-    val tmp = tokenizer.transform(train_df)
-    val tmp1 = remover.transform(tmp)
-    val w2v = new word2vec().load_model("./w2v_big")
-    var result = w2v.transform(tmp1)
-
-
-    result = normalizer.transform(result)
-    result.write.format("csv").save("normed.csv")
+    val pipeline = PipelineModel.load("./pipeline")
+    var result = pipeline.transform(train_df)
+    result = result.withColumn("Sentiment", result("Sentiment").cast(IntegerType))
 
     val Array(trainingData, testData) = result.randomSplit(Array(0.8, 0.2), seed = 1234L)
-
     val logistic = new LogisticRegression()
-      .setMaxIter(100)
+      .setMaxIter(50)
+      .setRegParam(0)
+      .setElasticNetParam(0)
       .setFeaturesCol("normedW2V")
       .setLabelCol("Sentiment")
       .fit(trainingData)
+    logistic.save("logistic.model")
 
-
-    val test_features = normalizer.transform(w2v.transform(remover.transform(tokenizer.transform(test_df))))
+    val test_features = pipeline.transform(test_df)
     var predictions = logistic.transform(test_features)
     println("Predictions on test data")
     predictions.show()

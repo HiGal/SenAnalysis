@@ -26,26 +26,33 @@ object MainClass {
       .appName("Stream Analyzer")
       .getOrCreate
 
+    // Load models
     val streamPipeline = PipelineModel.load("./pipeline")
     val logistic = LogisticRegressionModel.load("./logistic.model")
+
     val models = Map("logistic" -> logistic) // Add More models later
     val ssc = new StreamingContext(spark.sparkContext, Seconds(60))
 
     // Words reading in stream
-    val lines = ssc.socketTextStream("10.91.66.168", 8989)
+    val lines = ssc.socketTextStream("10.90.138.32", 8989)
     val schema = new StructType()
       .add(StructField("SentimentText", StringType, true))
     lines.foreachRDD(rdd => {
       val dT = Calendar.getInstance()
       val currentMinute = dT.get(Calendar.MINUTE)
       val currentHour = dT.get(Calendar.HOUR_OF_DAY)
-      val stream = spark.createDataFrame(rdd.map(attributes => Row(attributes)), schema)
+      val stream = spark.createDataFrame(rdd.map(attributes => Row(attributes)), schema).withColumn("id", monotonicallyIncreasingId)
       val features = streamPipeline.transform(stream)
       for ((k,v) <- models){
-        val predicitions = v.transform(features).select("SentimentText", "prediction").withColumn("Time", lit(s"$currentHour:$currentMinute"))
-        predicitions.write.mode(SaveMode.Append).csv("output/"+k+".csv")
+        val predicitions = v.transform(features).
+          select("prediction")
+          .withColumn("Time", lit(s"$currentHour:$currentMinute"))
+          .crossJoin(stream)
+        predicitions.select("Time", "SentimentText", "prediction")
+          .write.mode(SaveMode.Append).csv("output/"+k+".csv")
       }
     })
+    //TODO: write count words
     ssc.start()
     ssc.awaitTermination()
   }
