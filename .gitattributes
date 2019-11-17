@@ -2,3 +2,4 @@ dataset filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
 word2vec.model filter=lfs diff=lfs merge=lfs -text
 w2v_big filter=lfs diff=lfs merge=lfs -text
+GIT_TRACE=1
