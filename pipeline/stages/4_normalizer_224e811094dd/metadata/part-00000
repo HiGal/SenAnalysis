@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.Normalizer","timestamp":1574007713915,"sparkVersion":"2.4.4","uid":"normalizer_224e811094dd","paramMap":{"inputCol":"word2vec","outputCol":"normedW2V"},"defaultParamMap":{"outputCol":"normalizer_224e811094dd__output","p":2.0}}
