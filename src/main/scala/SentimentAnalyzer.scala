@@ -2,25 +2,16 @@ import java.util.Calendar
 
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel, RandomForestClassificationModel}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.streaming._
 
 object SentimentAnalyzer {
   def main(args: Array[String]) {
-
-    val updateFunc = (values: Seq[Int], state: Option[Int]) => {
-      val currentCount = values.foldLeft(0)(_ + _)
-
-      val previousCount = state.getOrElse(0)
-
-      Some(currentCount + previousCount)
-    }
-
     // Create Session
     val spark = SparkSession.builder
-      .master("local")
       .appName("Sentiment Analyzer")
       .getOrCreate
 
@@ -34,12 +25,28 @@ object SentimentAnalyzer {
     val models = Map("logistic" -> logistic, "svc"->svm, "perceptron"->perceptron, "random_forest"->forest)
 
     // Init stream reading
-    val ssc = new StreamingContext(spark.sparkContext, Seconds(60))
+    val ssc = new StreamingContext(spark.sparkContext, Seconds(300))
 
     // Read stream line by line
     val lines = ssc.socketTextStream("10.90.138.32", 8989)
     val schema = new StructType()
       .add(StructField("SentimentText", StringType, true))
+
+    val regex = "[,.:;'\"\\?\\-!\\(\\)]".r
+    val stopwords = List("i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now")
+    val words = lines
+      .map(line => "&(lt)?(gt)?(amp)?(quot)?;".r.replaceAllIn(line, ""))
+      .map(line => "@[a-zA-Z0-9_]+".r.replaceAllIn(line, ""))
+      .flatMap(line => line.split("\\W"))
+      .map(word => regex.replaceAllIn(word.trim.toLowerCase, ""))
+      .filter(word => !word.isEmpty)
+      .filter(word => !stopwords.contains(word))
+      .map(word => (word, 1))
+      .reduceByKey(_ + _)
+      .map(tuple => (tuple._2, tuple._1))
+      .transform(rdd => rdd.sortByKey(false))
+    words.saveAsTextFiles("topic/")
+
     lines.foreachRDD(rdd => {
       // Get current time
       val dT = Calendar.getInstance()
@@ -52,8 +59,6 @@ object SentimentAnalyzer {
       // Apply pipeline transformation before using models
       val features = streamPipeline.transform(stream)
       // On each feature use pretrained model to predict result
-      val word_count = features.select("filteredPhrases").rdd.map(r => r(0)).collect()
-      println(word_count)
 
       for ((k,model) <- models){
         val predicitions = model.transform(features).
@@ -61,8 +66,8 @@ object SentimentAnalyzer {
           .withColumn("Time", lit(s"$currentHour:$currentMinute"))
           .crossJoin(stream)
         //Then save the output
-        predicitions.select("Time", "SentimentText", "prediction")
-          .coalesce(1).write.mode(SaveMode.Append).csv("output/"+k)
+        predicitions.select("Time", "SentimentText", "prediction").withColumn("prediction", predicitions.col("prediction").cast(IntegerType))
+          .write.mode(SaveMode.Append).csv("output/"+k)
       }
     })
 
