@@ -32,9 +32,14 @@ object TrainModels {
     val usage = "Usage: program <dataset_folder> <model_name>" +
       "\n" +
       "\n" +
-      "Possible models:" +
-      "\tword2vec - word2vec model" +
-      "\tlogistic - logistic regression"
+      "Possible models:\n" +
+      "All require dataset train.csv in the dataset directory\n" +
+      "\tword2vec - word2vec model\n" +
+      "All those below also require a pipeline pretrained model\n" +
+      "\tlogistic - logistic regression\n" +
+      "\tperceptron - multilayer perceptron model\n" +
+      "\tsvc - linear SVC model\n" +
+      "\tforest - Random Forest model\n"
     if (args.length != 2) {
       println(usage)
       System.exit(0)

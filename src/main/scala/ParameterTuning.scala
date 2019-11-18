@@ -1,6 +1,6 @@
 import model.word2vec
 import org.apache.spark.ml.PipelineModel
-import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.classification.{LogisticRegression, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator}
 import org.apache.spark.ml.feature.{LabeledPoint, RegexTokenizer}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
@@ -24,7 +24,7 @@ object ParameterTuning {
     val features = pipeline.transform(train_df)
     val Array(trainingData, testData) = features.withColumn("label", features("Sentiment").cast(DoubleType)).randomSplit(Array(0.8, 0.2), seed = 1234L)
     val logistic =  new LogisticRegression()
-      .setFeaturesCol("result")
+      .setFeaturesCol("normedW2V")
       .setLabelCol("label")
 
     val paramGridLogistic = new ParamGridBuilder()
@@ -32,10 +32,27 @@ object ParameterTuning {
       .addGrid(logistic.maxIter, Array(10, 20, 50, 100))
       .addGrid(logistic.elasticNetParam, Array(0, 0.1, 0.5, 0.8))
       .build()
+
+    val rf = new RandomForestClassifier()
+      .setFeaturesCol("normedW2V")
+      .setLabelCol("label")
+
+    val paramGridRandomForest = new ParamGridBuilder()
+      .addGrid(rf.numTrees, Array(25, 50, 100, 200))
+      .addGrid(rf.maxDepth, Array(5, 20, 50, 75))
+      .addGrid(rf.minInstancesPerNode, Array(2,5,8,10))
+      .build()
+
+//    val cv = new CrossValidator()
+//      .setEstimator(logistic)
+//      .setEvaluator(new BinaryClassificationEvaluator)
+//      .setEstimatorParamMaps(paramGridLogistic)
+//      .setNumFolds(5)
+
     val cv = new CrossValidator()
-      .setEstimator(logistic)
+      .setEstimator(rf)
       .setEvaluator(new BinaryClassificationEvaluator)
-      .setEstimatorParamMaps(paramGridLogistic)
+      .setEstimatorParamMaps(paramGridRandomForest)
       .setNumFolds(5)
     val cvModel = cv.fit(trainingData)
 

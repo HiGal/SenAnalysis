@@ -1,7 +1,7 @@
 import java.util.Calendar
 
 import org.apache.spark.ml.PipelineModel
-import org.apache.spark.ml.classification.LogisticRegressionModel
+import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel, RandomForestClassificationModel}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
@@ -27,9 +27,11 @@ object SentimentAnalyzer {
     // Load models
     val streamPipeline = PipelineModel.load("./pipeline")
     val logistic = LogisticRegressionModel.load("./logistic.model")
-
+    val svm = LinearSVCModel.load("./svm.model")
+    val perceptron = MultilayerPerceptronClassificationModel.load("./perceptron.model")
+    val forest = RandomForestClassificationModel.load("./forest.model")
     // Create map for every model
-    val models = Map("logistic" -> logistic)
+    val models = Map("logistic" -> logistic, "svc"->svm, "perceptron"->perceptron, "random_forest"->forest)
 
     // Init stream reading
     val ssc = new StreamingContext(spark.sparkContext, Seconds(60))
