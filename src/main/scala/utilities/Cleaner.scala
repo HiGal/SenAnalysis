@@ -1,9 +1,11 @@
+package utilities
+
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{Param, ParamMap, Params, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.functions.regexp_replace
-import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 trait HasRegExp extends Params {
   final val regularExp : StringArrayParam = new StringArrayParam(this, "inputCols", "input column names")

@@ -12,6 +12,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.regexp_replace
 import org.apache.spark.sql.types.{DoubleType, IntegerType}
 import org.apache.spark.sql.Column
+import utilities.Cleaner
 
 
 object TrainModels {

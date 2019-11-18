@@ -10,6 +10,6 @@ resolvers += "snapshots-repo" at "https://oss.sonatype.org/content/repositories/
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-streaming" % sparkVersion,
-  "org.apache.spark" %% "spark-mllib"% sparkVersion
+  "org.apache.spark" %% "spark-mllib"%"2.4.0",
+  "com.intel.analytics.bigdl" % "bigdl-SPARK_2.4" % "0.9.0"
 )
-dependencyOverrides += "com.google.guava" % "guava" % "15.0"
