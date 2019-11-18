@@ -1,0 +1,1 @@
+{"class":"utilities.Cleaner","timestamp":1574085094012,"sparkVersion":"2.4.4","uid":"RegExpCleaner_2648f558fb62","paramMap":{"inputCols":["@[a-zA-Z0-9_]+","&(lt)?(gt)?(amp)?(quot)?;"],"inputCol":"SentimentText","outputCol":"SentimentText"},"defaultParamMap":{}}

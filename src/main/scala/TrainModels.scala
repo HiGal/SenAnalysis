@@ -3,7 +3,7 @@ import java.util.Calendar
 import model.word2vec
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.classification.{Classifier, LogisticRegression}
+import org.apache.spark.ml.classification.{Classifier, LinearSVC, LogisticRegression, MultilayerPerceptronClassifier, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator}
 import org.apache.spark.ml.feature.{Normalizer, RegexTokenizer, StopWordsRemover, VectorAssembler, Word2Vec, Word2VecModel}
 import org.apache.spark.mllib.evaluation.{BinaryClassificationMetrics, MulticlassMetrics}
@@ -29,13 +29,14 @@ object TrainModels {
     println(s"F1 score = $f1_score")
   }
   def main(args: Array[String]) {
+    val usage = "Usage: program <dataset_folder> <model_name>" +
+      "\n" +
+      "\n" +
+      "Possible models:" +
+      "\tword2vec - word2vec model" +
+      "\tlogistic - logistic regression"
     if (args.length != 2) {
-      println("Usage: program <dataset_folder> <model_name>" +
-        "\n" +
-        "\n" +
-        "Possible models:" +
-        "\tword2vec - word2vec model" +
-        "\tlogistic - logistic regression")
+      println(usage)
       System.exit(0)
     }
     // Get arguments
@@ -114,6 +115,49 @@ object TrainModels {
         model.save("./logistic.model")
         val predictions = model.transform(testData)
         evaluate(predictions)
+      } else if (model_name == "perceptron"){
+        // Define perceptron layers
+        val layers = Array[Int](128, 64, 32, 2)
+
+        // Init perceptron model
+        val model = new MultilayerPerceptronClassifier()
+          .setLayers(layers)
+          .setBlockSize(64)
+          .setSeed(1234L)
+          .setMaxIter(100)
+          .setFeaturesCol("normedW2V")
+          .setLabelCol("label")
+          .fit(trainingData)
+        // Save, predict and evaluate model
+        model.save("./perceptron.model")
+        val predictions = model.transform(testData)
+        evaluate(predictions)
+      } else if (model_name == "svm"){
+        // Init SVM model
+        val model = new LinearSVC()
+          .setMaxIter(100)
+          .setRegParam(0)
+          .setFeaturesCol("normedW2V")
+          .setLabelCol("label")
+          .fit(trainingData)
+        // Save, predict and evaluate model
+        model.save("./svm.model")
+        val predictions = model.transform(testData)
+        evaluate(predictions)
+      } else if (model_name == "forest"){
+        // Init Random Forest
+        val model = new RandomForestClassifier()
+          .setNumTrees(100)
+          .setFeaturesCol("normedW2V")
+          .setLabelCol("label")
+          .fit(trainingData)
+        // Save, predict and evaluate model
+        model.save("./forest.model")
+        val predictions = model.transform(testData)
+        evaluate(predictions)
+      } else{
+        println(usage)
+        System.exit(0)
       }
     }
   }

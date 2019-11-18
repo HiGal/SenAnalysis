@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.RegexTokenizer","timestamp":1574085094070,"sparkVersion":"2.4.4","uid":"regexTok_84d2f8b217da","paramMap":{"inputCol":"SentimentText","outputCol":"Tokens","gaps":true,"pattern":"\\W+"},"defaultParamMap":{"outputCol":"regexTok_84d2f8b217da__output","gaps":true,"pattern":"\\s+","minTokenLength":1,"toLowercase":true}}
