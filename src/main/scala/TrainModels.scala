@@ -14,44 +14,61 @@ import org.apache.spark.sql.Column
 
 object TrainModels {
   def main(args: Array[String]) {
-    Logger.getLogger("org").setLevel(Level.OFF)
-    Logger.getLogger("akka").setLevel(Level.OFF)
+
+    // Create spark Session
     val spark = SparkSession.builder
       .master("local[*]")
       .appName("Spark CSV Reader")
       .getOrCreate
+
+    // Load training dataset
     var train_df = spark.read
       .format("csv")
       .option("header", "true")
       .load("dataset/train.csv")
+
+    // Load test dataset
     var test_df = spark.read
       .format("csv")
       .option("header", "true")
       .load("dataset/test.csv")
 
+    // Init tokenizer transformer
     val tokenizer = new RegexTokenizer()
       .setInputCol("SentimentText")
       .setOutputCol("Tokens")
       .setPattern("\\W+")
       .setGaps(true)
+
+    // Init stop words remover transformer (english by default)
     val remover = new StopWordsRemover()
       .setInputCol("Tokens")
       .setOutputCol("filteredPhrases")
+
+    // Ini cleaner transformer that will remove nickname tags and html tags
     val cleaner = new Cleaner()
       .setInputCol("SentimentText")
       .setOutputCol("SentimentText")
       .setRegularExpressions(Array("@[a-zA-Z0-9_]+", "&(lt)?(gt)?(amp)?(quot)?;"))
-    val model = new word2vec().load_model("./word2vec.model").setInputCol("filteredPhrases").setOutputCol("word2vec")
+
+    // Normalizer model
     val normalizer = new Normalizer()
       .setInputCol("word2vec")
       .setOutputCol("normedW2V")
-    val streamPipeline = new Pipeline().setStages(Array( cleaner, tokenizer, remover, model, normalizer))
+    // Load word2vec model
+    val model = new word2vec().load_model("./word2vec.model").setInputCol("filteredPhrases").setOutputCol("word2vec")
+
+    // Create pipeline - clean the message first, tokenize the lines, remove stop words, run through word2vec and normalize result
+    val streamPipeline = new Pipeline().setStages(Array(cleaner, tokenizer, remover, model, normalizer))
     val sentenceDataFrame = spark.createDataFrame(Seq(("Hi I heard about Spark", 1))).toDF("SentimentText", "id")
     val pipeline = PipelineModel.load("./pipeline")
     var result = pipeline.transform(train_df)
     result = result.withColumn("Sentiment", result("Sentiment").cast(IntegerType))
 
+    // Split training set to test and train
     val Array(trainingData, testData) = result.randomSplit(Array(0.8, 0.2), seed = 1234L)
+
+    // Train logistic model
     val logistic = new LogisticRegression()
       .setMaxIter(50)
       .setRegParam(0)
@@ -72,7 +89,6 @@ object TrainModels {
       .setMetricName("accuracy")
     val accuracy = evaluator.evaluate(predictions)
     println(s"Validation set accuracy = $accuracy")
-    //    println(s"Count 1 =$ \nCount 2 =$")
   }
 
 }
