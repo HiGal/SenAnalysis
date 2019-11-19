@@ -1,17 +1,10 @@
-import java.util.Calendar
-
-import model.word2vec
-import org.apache.log4j.{Level, Logger}
+import org.apache.spark.ml.classification.{LinearSVC, LogisticRegression, MultilayerPerceptronClassifier, RandomForestClassifier}
+import org.apache.spark.ml.feature.{Normalizer, RegexTokenizer, StopWordsRemover, Word2Vec}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.classification.{Classifier, LogisticRegression}
-import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator}
-import org.apache.spark.ml.feature.{Normalizer, RegexTokenizer, StopWordsRemover, VectorAssembler, Word2Vec, Word2VecModel}
-import org.apache.spark.mllib.evaluation.{BinaryClassificationMetrics, MulticlassMetrics}
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.regexp_replace
-import org.apache.spark.sql.types.{DoubleType, IntegerType}
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.types.DoubleType
 import utilities.Cleaner
 
 
@@ -29,13 +22,19 @@ object TrainModels {
     println(s"F1 score = $f1_score")
   }
   def main(args: Array[String]) {
+    val usage = "Usage: program <dataset_folder> <model_name>" +
+      "\n" +
+      "\n" +
+      "Possible models:\n" +
+      "All require dataset train.csv in the dataset directory\n" +
+      "\tword2vec - word2vec model\n" +
+      "All those below also require a pipeline pretrained model\n" +
+      "\tlogistic - logistic regression\n" +
+      "\tperceptron - multilayer perceptron model\n" +
+      "\tsvm - linear SVC model\n" +
+      "\tforest - Random Forest model\n"
     if (args.length != 2) {
-      println("Usage: program <dataset_folder> <model_name>" +
-        "\n" +
-        "\n" +
-        "Possible models:" +
-        "\tword2vec - word2vec model" +
-        "\tlogistic - logistic regression")
+      println(usage)
       System.exit(0)
     }
     // Get arguments
@@ -43,7 +42,6 @@ object TrainModels {
     val model_name = args(1)
     // Create spark Session
     val spark = SparkSession.builder
-      .master("local[*]")
       .appName("Spark CSV Reader")
       .getOrCreate
 
@@ -86,13 +84,13 @@ object TrainModels {
 
       // Create new word2vec model
       val model = new Word2Vec()
-        .setMaxIter(10)
+        .setMaxIter(50)
         .setVectorSize(128)
         .setInputCol("Tokens")
-        .setOutputCol("result")
+        .setOutputCol("word2vec")
       // Init pipeline
       val preprocessPipeline = new Pipeline().setStages(Array(cleaner, tokenizer, remover, model, normalizer))
-      val result = preprocessPipeline.fit(train_df.select("SentimentText").join(test_df.select("SentimentText")))
+      val result = preprocessPipeline.fit(train_df.select("SentimentText").union(test_df.select("SentimentText")))
       // Save trained word2vec
       result.save("./pipeline")
       // Else we are training models with pretrained pipeline
@@ -114,6 +112,49 @@ object TrainModels {
         model.save("./logistic.model")
         val predictions = model.transform(testData)
         evaluate(predictions)
+      } else if (model_name == "perceptron"){
+        // Define perceptron layers
+        val layers = Array[Int](128, 64, 32, 2)
+
+        // Init perceptron model
+        val model = new MultilayerPerceptronClassifier()
+          .setLayers(layers)
+          .setBlockSize(64)
+          .setSeed(1234L)
+          .setMaxIter(100)
+          .setFeaturesCol("normedW2V")
+          .setLabelCol("label")
+          .fit(trainingData)
+        // Save, predict and evaluate model
+        model.save("./perceptron.model")
+        val predictions = model.transform(testData)
+        evaluate(predictions)
+      } else if (model_name == "svm"){
+        // Init SVM model
+        val model = new LinearSVC()
+          .setMaxIter(100)
+          .setRegParam(0)
+          .setFeaturesCol("normedW2V")
+          .setLabelCol("label")
+          .fit(trainingData)
+        // Save, predict and evaluate model
+        model.save("./svm.model")
+        val predictions = model.transform(testData)
+        evaluate(predictions)
+      } else if (model_name == "forest"){
+        // Init Random Forest
+        val model = new RandomForestClassifier()
+          .setNumTrees(100)
+          .setFeaturesCol("normedW2V")
+          .setLabelCol("label")
+          .fit(trainingData)
+        // Save, predict and evaluate model
+        model.save("./forest.model")
+        val predictions = model.transform(testData)
+        evaluate(predictions)
+      } else{
+        println(usage)
+        System.exit(0)
       }
     }
   }
