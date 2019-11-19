@@ -63,7 +63,7 @@ object SentimentAnalyzer {
         }
       }
     })
-    words.repartition(1).saveAsTextFiles("topic/")
+    words.repartition(1).saveAsTextFiles("output/topic/")
     //Begin reading the stream
     ssc.start()
     ssc.awaitTermination()
