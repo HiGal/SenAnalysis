@@ -92,13 +92,13 @@ object TrainModels {
 
       // Create new word2vec model
       val model = new Word2Vec()
-        .setMaxIter(10)
+        .setMaxIter(50)
         .setVectorSize(128)
         .setInputCol("Tokens")
-        .setOutputCol("result")
+        .setOutputCol("word2vec")
       // Init pipeline
       val preprocessPipeline = new Pipeline().setStages(Array(cleaner, tokenizer, remover, model, normalizer))
-      val result = preprocessPipeline.fit(train_df.select("SentimentText").join(test_df.select("SentimentText")))
+      val result = preprocessPipeline.fit(train_df.select("SentimentText").union(test_df.select("SentimentText")))
       // Save trained word2vec
       result.save("./pipeline")
       // Else we are training models with pretrained pipeline

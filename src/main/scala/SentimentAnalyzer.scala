@@ -26,7 +26,7 @@ object SentimentAnalyzer {
     val models = Map("logistic" -> logistic, "svc"->svm, "perceptron"->perceptron, "random_forest"->forest)
 
     // Init stream reading
-    val ssc = new StreamingContext(spark.sparkContext, Seconds(300))
+    val ssc = new StreamingContext(spark.sparkContext, Seconds(600))
 
     // Read stream line by line
     val lines = ssc.socketTextStream("10.90.138.32", 8989)
