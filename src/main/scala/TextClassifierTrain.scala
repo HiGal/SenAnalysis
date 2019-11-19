@@ -20,14 +20,7 @@ object TextClassifierTrain {
 
   def main(args: Array[String]): Unit = {
 
-//    val conf = Engine.createSparkConf()
-//      .setAppName("Text classification")
-//      .setMaster("local[1]")
-//      .set("spark.task.maxFailures", "1")
-//
-//    val sc = new SparkContext(conf)
-//    Engine.init
-
+    // Argument Parser
     val localParser = new OptionParser[TextClassificationParams]("BigDL Example") {
       opt[String]('b', "baseDir")
         .required()
@@ -54,6 +47,7 @@ object TextClassifierTrain {
     }
 
 
+    // Train model
     localParser.parse(args, TextClassificationParams()).map { param =>
       log.info(s"Current parameters: $param")
       val textClassification = new TextClassifier(param)

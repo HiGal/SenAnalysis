@@ -1,34 +1,27 @@
 package model
 
-import java.io.File
-import java.util
-
 import com.intel.analytics.bigdl._
 import com.intel.analytics.bigdl.dataset._
+import com.intel.analytics.bigdl.example.utils.SimpleTokenizer._
+import com.intel.analytics.bigdl.example.utils.{SimpleTokenizer, WordMeta}
 import com.intel.analytics.bigdl.nn.{ClassNLLCriterion, _}
 import com.intel.analytics.bigdl.optim._
 import com.intel.analytics.bigdl.tensor.Tensor
-import com.intel.analytics.bigdl.utils.{Engine, LoggerFilter, T}
-import com.intel.analytics.bigdl.example.utils.SimpleTokenizer._
-import com.intel.analytics.bigdl.example.utils.{SimpleTokenizer, WordMeta}
+import com.intel.analytics.bigdl.utils.Engine
 import org.apache.spark.SparkContext
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.metrics.source
 import org.apache.spark.rdd.RDD
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.{ArrayBuffer, Map => MMap}
-import scala.language.existentials
-import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
+import scala.language.existentials
 
 /**
   * This example use a (pre-trained GloVe embedding) to convert word to vector,
-  * and uses it to train a text classification model on the 20 Newsgroup dataset
-  * with 20 different categories. This model can achieve around 90% accuracy after
-  * 2 epochs training.
+  * and uses it to train a text classification model
   */
 class TextClassifier(param: AbstractTextClassificationParams) extends Serializable {
+  // defining global parameters
   val log: Logger = LoggerFactory.getLogger(this.getClass)
   val gloveDir = s"${param.baseDir}/glove.6B/"
   val trainDataDir = s"${param.baseDir}/train.csv"
@@ -83,31 +76,6 @@ class TextClassifier(param: AbstractTextClassificationParams) extends Serializab
     *
     * @return An array of sample
     */
-  //  private def loadRawData(): ArrayBuffer[(String, Float)] = {
-  //    val texts = ArrayBuffer[String]()
-  //    val labels = ArrayBuffer[Float]()
-  //    // category is a string name, label is it's index
-  //    val categoryToLabel = new util.HashMap[String, Int]()
-  //    val categoryPathList = new File(textDataDir).listFiles().filter(_.isDirectory).toList.sorted
-  //
-  //    categoryPathList.foreach { categoryPath =>
-  //      val label_id = categoryToLabel.size() + 1 // one-base index
-  //      categoryToLabel.put(categoryPath.getName(), label_id)
-  //      val textFiles = categoryPath.listFiles()
-  //        .filter(_.isFile).filter(_.getName.forall(Character.isDigit(_))).sorted
-  //      textFiles.foreach { file =>
-  //        val source = Source.fromFile(file, "ISO-8859-1")
-  //        val text = try source.getLines().toList.mkString("\n") finally source.close()
-  //        texts.append(text)
-  //        labels.append(label_id)
-  //      }
-  //    }
-  //    this.classNum = labels.toSet.size
-  //    log.info(s"Found ${texts.length} texts.")
-  //    log.info(s"Found ${classNum} classes")
-  //    texts.zip(labels)
-  //  }
-
   private def loadRawData(train: Boolean): ArrayBuffer[(String, Float)] = {
     val texts = ArrayBuffer[String]()
     val labels = ArrayBuffer[Float]()
@@ -204,7 +172,6 @@ class TextClassifier(param: AbstractTextClassificationParams) extends Serializab
   def train(): Unit = {
         val conf = Engine.createSparkConf()
           .setAppName("Text classification")
-          .setMaster("local[1]")
           .set("spark.task.maxFailures", "1")
 
         val sc = new SparkContext(conf)
@@ -234,6 +201,7 @@ class TextClassifier(param: AbstractTextClassificationParams) extends Serializab
     val Array(trainingRDD, valRDD) = sampleRDD.randomSplit(
       Array(trainingSplit, 1 - trainingSplit))
 
+    // Create optimizer
     val optimizer = Optimizer(
       model = buildModel(classNum),
       sampleRDD = trainingRDD,
@@ -241,6 +209,7 @@ class TextClassifier(param: AbstractTextClassificationParams) extends Serializab
       batchSize = param.batchSize
     )
 
+    // Begin training
     optimizer
       .setOptimMethod(new Adagrad(learningRate = param.learningRate,
         learningRateDecay = 0.001))
