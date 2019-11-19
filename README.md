@@ -1,4 +1,3 @@
-# SenAnalysis
 # [Report] Introduction to Big Data Assignment №2.
 ### Stream Processing with Spark
 
@@ -187,6 +186,15 @@ For training **train.csv** and **test.csv** were used. For testing we used **tra
 | -------- | -------- | -------- |--------|
 | 11-19    | 11:22    | @BlokesLib Night night sweetie! Have a great one!     | 1|
 |11-19|11:23|	@BlokesLib oh...except when i have to refuel from drums...that sucks|0|
+
+The output of the models in stored in HDFS folder of our group - **/user/sharpei/output** with directory for every model. So the output structure is:
+**/user/sharpei/output/logistic/out.csv** -- Output of Logistic Model
+**/user/sharpei/output/random_forest/out.csv** -- Output of Random Forest Model
+**/user/sharpei/output/svc/out.csv** -- Output of Linear SVC Model
+**/user/sharpei/output/perceptron/out.csv** -- Output of Multilayer Perceptron Model
+**/user/sharpei/output/topics/out.csv** -- Most popular topics with count (word, count)
+
+
 
 ---
 
