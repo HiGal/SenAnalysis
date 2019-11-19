@@ -1,17 +1,10 @@
-import java.util.Calendar
-
-import model.word2vec
-import org.apache.log4j.{Level, Logger}
+import org.apache.spark.ml.classification.{LinearSVC, LogisticRegression, MultilayerPerceptronClassifier, RandomForestClassifier}
+import org.apache.spark.ml.feature.{Normalizer, RegexTokenizer, StopWordsRemover, Word2Vec}
 import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.classification.{Classifier, LinearSVC, LogisticRegression, MultilayerPerceptronClassifier, RandomForestClassifier}
-import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator}
-import org.apache.spark.ml.feature.{Normalizer, RegexTokenizer, StopWordsRemover, VectorAssembler, Word2Vec, Word2VecModel}
-import org.apache.spark.mllib.evaluation.{BinaryClassificationMetrics, MulticlassMetrics}
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.regexp_replace
-import org.apache.spark.sql.types.{DoubleType, IntegerType}
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.types.DoubleType
 import utilities.Cleaner
 
 
@@ -38,7 +31,7 @@ object TrainModels {
       "All those below also require a pipeline pretrained model\n" +
       "\tlogistic - logistic regression\n" +
       "\tperceptron - multilayer perceptron model\n" +
-      "\tsvc - linear SVC model\n" +
+      "\tsvm - linear SVC model\n" +
       "\tforest - Random Forest model\n"
     if (args.length != 2) {
       println(usage)
@@ -49,7 +42,6 @@ object TrainModels {
     val model_name = args(1)
     // Create spark Session
     val spark = SparkSession.builder
-      .master("local[*]")
       .appName("Spark CSV Reader")
       .getOrCreate
 

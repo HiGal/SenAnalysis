@@ -1,8 +1,5 @@
-import java.util.Calendar
-
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel, RandomForestClassificationModel}
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
@@ -12,7 +9,6 @@ object SentimentAnalyzer {
   def main(args: Array[String]) {
     // Create Session
     val spark = SparkSession.builder
-      .master("local[*]")
       .appName("Sentiment Analyzer")
       .getOrCreate
 
