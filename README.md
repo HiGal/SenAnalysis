@@ -11,6 +11,9 @@
 **Mikhail Tkachenko:** stream reading, wordcount
 **Vladislav Savchuk:** setting up filters, connecting stream to models, wordcount, tokens cleaning, model training and tuning
 
+### Commit History
+![](https://i.imgur.com/Wv22LV4.png)
+
 ---
 
 ### Description of the problem
@@ -66,7 +69,7 @@ In addition to sentiment analysis, we need to show top 10 most popular tweets to
     
     **Preprocessing**
     
-     a. **Cleaner**. Our own implementation of transformer, so that we can use it in pipeline (can be found in scala source directory in package `utilities`). It replaces all the substrings matching the         Regular Expressions (`"@[a-zA-Z0-9_]+"`,` "&(lt)?(gt)?           (amp)?(quot)?;"`) to remove the nickname and html tags           from the tweet. We are doing it to avoid processing of words         and symbols that are not related to the sentence that           the algorithm will analyze.
+     a. **Cleaner**. [Our own implementation of transformer](https://github.com/HiGal/SenAnalysis/blob/master/src/main/scala/utilities/Cleaner.scala), so that we can use it in pipeline (can be found in scala source directory in package `utilities`). It replaces all the substrings matching the         Regular Expressions (`"@[a-zA-Z0-9_]+"`,` "&(lt)?(gt)?           (amp)?(quot)?;"`) to remove the nickname and html tags           from the tweet. We are doing it to avoid processing of words         and symbols that are not related to the sentence that           the algorithm will analyze.
      
      b. **Tokenizer**. It fetches all the words (except removed         ones) from the initial sentence.
      
@@ -86,9 +89,9 @@ In addition to sentiment analysis, we need to show top 10 most popular tweets to
 Description of the solution is described above and comments in code will help you to understand
 
 ### c. Our improvements and suggestions. Comparison of our solution to others
-We have used 4 classification models: **Logistic regression**, **Random Forest** classifier, **Multilayer perceptron** classifier and **Linear SVC**. We have also tried to develop a CNN network, but it required too much memory to run. The biggest accuracy on validation dataset is reached by logistic regression: ~73%. Logreg also gives best accuracy on stream: ~80%. Results of other models can be found further in the report.
+We have used 4 classification models: **Logistic regression**, **Random Forest** classifier, **Multilayer perceptron** classifier and **Linear SVC**. We have also tried to develop a CNN network, but it required too much memory to run. The biggest accuracy on validation dataset is reached by logistic regression: ~73%. Logreg also gives best accuracy on stream: ~80%. Results of other models can be found further in the report. The code of the CNN model that we tried to deploy and train is in repository with name [TextClassifierTrain.scala](https://github.com/HiGal/SenAnalysis/blob/master/src/main/scala/TextClassifierTrain.scala) and [TextClassifier.scala](https://github.com/HiGal/SenAnalysis/blob/master/src/main/scala/model/TextClassifier.scala) in source folders.
 
-Unfortunately, we cannot test CNN text classifier model due to a lot of parameters in the model and memory bound. Firstly, we used GloVe for word embeddings that takes a lot of place in RAM, secondly,the model with high numbers of parameters which is hard to debug on cluster. This model by expectation should outperform other models with F1-score ~0.89.
+Unfortunately, we cannot test CNN text classifier model due to a lot of parameters in the model and memory bound (Java fails on Out Of Memory exception and we can't find a machine where it would be possible to train the model) . Firstly, we used GloVe for word embeddings that takes a lot of place in RAM, secondly,the model with high numbers of parameters which is hard to debug on cluster. This model by expectation should outperform other models with F1-score ~0.89.
 
 Summary of the model
 ![](https://i.imgur.com/dGk30J6.png)
@@ -152,7 +155,32 @@ How data looks after Preprocessing Pipeline
 +------+---------+--------------------+--------------------+
 ```
 
-For training **train.csv** and **test.csv** were used. For testing we used **train.csv** with train-validation split. For tuning we used a 5-fold Cross Validation on the train data. Below, when we will talk about models performance, the process of model training will be described more thoroughly.
+For training **train.csv** and **test.csv** were used. For testing we used **train.csv** with train-validation split. For tuning we used a 5-fold Cross Validation on the train data.
+
+The code of training models is located in [TrainModels.scala](https://github.com/HiGal/SenAnalysis/blob/feature/io/src/main/scala/TrainModels.scala) file. For training, we use *train.csv*.
+The Usage of the program:
+```
+Usage: TrainModels <dataset_folder> <model_name>
+
+Possible models:
+All require dataset train.csv in the dataset directory
+	word2vec - word2vec model
+All those below also require a pipeline pretrained model
+	logistic - logistic regression
+	perceptron - multilayer perceptron model
+	svm - linear SVC model
+	forest - Random Forest model
+```
+The output is then saved to `model_name.model` and will be loaded in the main algorithm (SentimentAnalyzer) for predioction.
+
+Hyperparameter tuning is performed in [ParameterTuning.scala](https://github.com/HiGal/SenAnalysis/blob/feature/io/src/main/scala/ParameterTuning.scala). For finding the best parameters with the highest accuracy for a certain model, we have used **GridSearch** with 5-fold Cross Validation on *train.csv*, it will then output the best models accuracy and it's parameters
+```
+Usage: ParameterTuning <model_name>
+Available models:
+	logistic - Logistic Regression model
+	random_forest - Random Forest model
+```
+***Note***: after finding the best parameters, it is needed to manually insert them into models' code.
 
 
 ![](https://i.imgur.com/Mk20bfi.png)
@@ -194,6 +222,7 @@ The output of the models in stored in HDFS folder of our group - **/user/sharpei
 **/user/sharpei/output/perceptron/out.csv** -- Output of Multilayer Perceptron Model
 **/user/sharpei/output/topics/out.csv** -- Most popular topics with count (word, count)
 
+All pretrained models are saved in home directory **/user/sharpei**
 
 
 ---
@@ -215,31 +244,6 @@ We have used 4 models, that are widely used in Machine Learning. The results of 
 As we know Neural Networks outperform Random Forests on image classification, from the high point of view text classification doesn't differ from image classfication, because firstly we make a word embedding and after that create a list of word embeddings for the sentence which gives us a 2D arrays as a grayscale image. It is because RFC is very sensetive to the preprocessing and to the number of features rather then Neural Networks.
 
 The score between MLP, Logistic Regression and Linear SVC is the same because of the hyperparameters, but theoretically with a better hyperparameters MLP should beat Linear SVC and Linear SVC should beat Logistic Regression because it less sensitive to outliers then LogReg.
-
-The code of training models is located in [TrainModels.scala](https://github.com/HiGal/SenAnalysis/blob/feature/io/src/main/scala/TrainModels.scala) file.For training, we use *train.csv*.
-The Usage of the program:
-```
-Usage: TrainModels <dataset_folder> <model_name>
-
-Possible models:
-All require dataset train.csv in the dataset directory
-	word2vec - word2vec model
-All those below also require a pipeline pretrained model
-	logistic - logistic regression
-	perceptron - multilayer perceptron model
-	svm - linear SVC model
-	forest - Random Forest model
-```
-The output is then saved to `model_name.model` and will be loaded in the main algorithm (SentimentAnalyzer) for predioction.
-
-Hyperparameter tuning is performed in [ParameterTuning.scala](https://github.com/HiGal/SenAnalysis/blob/feature/io/src/main/scala/ParameterTuning.scala). For finding the best parameters with the highest accuracy for a certain model, we have used **GridSearch** with 5-fold Cross Validation on *train.csv*, it will then output the best models accuracy and it's parameters
-```
-Usage: ParameterTuning <model_name>
-Available models:
-	logistic - Logistic Regression model
-	random_forest - Random Forest model
-```
-***Note***: after finding the best parameters, it is needed to manually insert them into models' code.
 
 According to accuracy and F1-score on validation dataset, the top of the models is the following:
     1. Logistic Regression
