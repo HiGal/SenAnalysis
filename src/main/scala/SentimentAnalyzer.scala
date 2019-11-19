@@ -26,7 +26,7 @@ object SentimentAnalyzer {
     val models = Map("logistic" -> logistic, "svc"->svm, "perceptron"->perceptron, "random_forest"->forest)
 
     // Init stream reading
-    val ssc = new StreamingContext(spark.sparkContext, Seconds(600))
+    val ssc = new StreamingContext(spark.sparkContext, Seconds(60))
 
     // Read stream line by line
     val lines = ssc.socketTextStream("10.90.138.32", 8989)
@@ -45,24 +45,22 @@ object SentimentAnalyzer {
       .filter(word => !word.isEmpty) // Remove empty words
       .filter(word => !stopwords.contains(word)) // Remove stop words
       .map(word => (word, 1))
-      .reduceByKey(_ + _) // Count the words
+      .reduceByKeyAndWindow(_ + _, Seconds(21600)) // Count the words
       .map(tuple => (tuple._2, tuple._1))
       .transform(rdd => rdd.sortByKey(false)) // Sort the words
       // We will save them after doing predictions
 
     lines.foreachRDD(rdd => {
       // Create DataFrame from input
-      val stream = spark.createDataFrame(rdd.map(attributes => Row(attributes)), schema).withColumn("id", monotonicallyIncreasingId)
+      val stream = spark.createDataFrame(rdd.map(attributes => Row(attributes)), schema)
       if (stream.count() > 0) {
         // Apply pipeline transformation before using models
         val features = streamPipeline.transform(stream)
         // On each feature use pretrained model to predict result
         val format = "MM-dd HH:mm"
         for ((k, model) <- models) {
-          val predicitions = model.transform(features).
-            select("prediction")
+          val predicitions = model.transform(features)
             .withColumn("Time", date_format(current_timestamp(), format))
-            .crossJoin(stream)
           //Then save the output
           predicitions.select("Time", "SentimentText", "prediction").withColumn("prediction", predicitions.col("prediction").cast(IntegerType))
             .write.mode(SaveMode.Append).csv("output/" + k)
@@ -70,7 +68,7 @@ object SentimentAnalyzer {
       }
     })
     words.print()
-    words.saveAsTextFiles("topic/")
+    words.repartition(1).saveAsTextFiles("topic/")
     //Begin reading the stream
     ssc.start()
     ssc.awaitTermination()
