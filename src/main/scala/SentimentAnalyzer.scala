@@ -55,19 +55,18 @@ object SentimentAnalyzer {
       val stream = spark.createDataFrame(rdd.map(attributes => Row(attributes)), schema)
       if (stream.count() > 0) {
         // Apply pipeline transformation before using models
-        val features = streamPipeline.transform(stream)
+        val features = streamPipeline.transform(stream.withColumn("OriginalText", stream.col("SentimentText")))
         // On each feature use pretrained model to predict result
         val format = "MM-dd HH:mm"
         for ((k, model) <- models) {
           val predicitions = model.transform(features)
             .withColumn("Time", date_format(current_timestamp(), format))
           //Then save the output
-          predicitions.select("Time", "SentimentText", "prediction").withColumn("prediction", predicitions.col("prediction").cast(IntegerType))
+          predicitions.select("Time", "OriginalText", "prediction").withColumn("prediction", predicitions.col("prediction").cast(IntegerType))
             .write.mode(SaveMode.Append).csv("output/" + k)
         }
       }
     })
-    words.print()
     words.repartition(1).saveAsTextFiles("topic/")
     //Begin reading the stream
     ssc.start()
