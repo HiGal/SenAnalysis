@@ -1,2 +1,5 @@
 dataset filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
+word2vec.model filter=lfs diff=lfs merge=lfs -text
+pipeline filter=lfs diff=lfs merge=lfs -text
+logistic.model/** filter=lfs diff=lfs merge=lfs -text
